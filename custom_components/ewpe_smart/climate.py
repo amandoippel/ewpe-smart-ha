@@ -38,9 +38,17 @@ from .const import (
     PARAM_MODE,
     PARAM_POWER,
     PARAM_SET_TEMP,
+    PARAM_SWING_VERTICAL,
     PARAM_TEMP_SENSOR,
     POWER_OFF,
     POWER_ON,
+    SWING_VERTICAL_DEFAULT,
+    SWING_VERTICAL_FIXED_LOWEST,
+    SWING_VERTICAL_FIXED_MIDDLE,
+    SWING_VERTICAL_FIXED_MIDDLE_LOW,
+    SWING_VERTICAL_FIXED_MIDDLE_UP,
+    SWING_VERTICAL_FIXED_UPMOST,
+    SWING_VERTICAL_FULL,
 )
 from .coordinator import EwpeCoordinator
 
@@ -62,6 +70,17 @@ FAN_MODE_TO_DEVICE: dict[str, int] = {
     FAN_HIGH: FAN_SPEED_HIGH,
 }
 DEVICE_TO_FAN_MODE: dict[int, str] = {v: k for k, v in FAN_MODE_TO_DEVICE.items()}
+
+SWING_MODE_TO_DEVICE: dict[str, int] = {
+    "Default": SWING_VERTICAL_DEFAULT,
+    "Full swing": SWING_VERTICAL_FULL,
+    "Fixed - upmost": SWING_VERTICAL_FIXED_UPMOST,
+    "Fixed - middle-up": SWING_VERTICAL_FIXED_MIDDLE_UP,
+    "Fixed - middle": SWING_VERTICAL_FIXED_MIDDLE,
+    "Fixed - middle-low": SWING_VERTICAL_FIXED_MIDDLE_LOW,
+    "Fixed - lowest": SWING_VERTICAL_FIXED_LOWEST,
+}
+DEVICE_TO_SWING_MODE: dict[int, str] = {v: k for k, v in SWING_MODE_TO_DEVICE.items()}
 
 
 async def async_setup_entry(
@@ -92,11 +111,13 @@ class EwpeClimateEntity(CoordinatorEntity[EwpeCoordinator], ClimateEntity):
         HVACMode.FAN_ONLY,
     ]
     _attr_fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH]
+    _attr_swing_modes = list(SWING_MODE_TO_DEVICE)
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.FAN_MODE
         | ClimateEntityFeature.TURN_ON
         | ClimateEntityFeature.TURN_OFF
+        | ClimateEntityFeature.SWING_MODE
     )
 
     def __init__(self, coordinator: EwpeCoordinator, entry: ConfigEntry) -> None:
@@ -133,6 +154,13 @@ class EwpeClimateEntity(CoordinatorEntity[EwpeCoordinator], ClimateEntity):
         return DEVICE_TO_FAN_MODE.get(speed)
 
     @property
+    def swing_mode(self) -> str | None:
+        value = self._data.get(PARAM_SWING_VERTICAL)
+        if value is None:
+            return None
+        return DEVICE_TO_SWING_MODE.get(value)
+
+    @property
     def target_temperature(self) -> float | None:
         value = self._data.get(PARAM_SET_TEMP)
         return float(value) if value is not None else None
@@ -160,6 +188,12 @@ class EwpeClimateEntity(CoordinatorEntity[EwpeCoordinator], ClimateEntity):
         if device_speed is None:
             raise ValueError(f"Unsupported fan_mode: {fan_mode}")
         await self._send({PARAM_FAN_SPEED: device_speed})
+
+    async def async_set_swing_mode(self, swing_mode: str) -> None:
+        device_value = SWING_MODE_TO_DEVICE.get(swing_mode)
+        if device_value is None:
+            raise ValueError(f"Unsupported swing_mode: {swing_mode}")
+        await self._send({PARAM_SWING_VERTICAL: device_value})
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temperature = kwargs.get(ATTR_TEMPERATURE)

@@ -19,6 +19,7 @@ from custom_components.ewpe_smart.const import (
     PARAM_MODE,
     PARAM_POWER,
     PARAM_SET_TEMP,
+    PARAM_SWING_VERTICAL,
 )
 
 
@@ -84,6 +85,28 @@ def test_implausible_temp_sensor_is_none() -> None:
     assert entity.current_temperature is None
 
 
+@pytest.mark.parametrize(
+    ("device_value", "expected"),
+    [
+        (0, "Default"),
+        (1, "Full swing"),
+        (2, "Fixed - upmost"),
+        (3, "Fixed - middle-up"),
+        (4, "Fixed - middle"),
+        (5, "Fixed - middle-low"),
+        (6, "Fixed - lowest"),
+    ],
+)
+def test_swing_mode_maps_correctly(device_value: int, expected: str) -> None:
+    entity, _ = _make_entity({"Pow": 1, "Mod": 1, "SwUpDn": device_value})
+    assert entity.swing_mode == expected
+
+
+def test_swing_mode_missing_is_none() -> None:
+    entity, _ = _make_entity({"Pow": 1, "Mod": 1})
+    assert entity.swing_mode is None
+
+
 @pytest.mark.asyncio
 async def test_set_temperature_emits_set_tem() -> None:
     entity, device = _make_entity({"Pow": 1, "Mod": 1, "SetTem": 22})
@@ -119,3 +142,10 @@ async def test_turn_on_off_shortcuts() -> None:
     device.set_state.assert_awaited_with({PARAM_POWER: 1})
     await entity.async_turn_off()
     device.set_state.assert_awaited_with({PARAM_POWER: 0})
+
+
+@pytest.mark.asyncio
+async def test_set_swing_mode_emits_swupdn() -> None:
+    entity, device = _make_entity({"Pow": 1, "Mod": 1, "SwUpDn": 0})
+    await entity.async_set_swing_mode("Fixed - lowest")
+    device.set_state.assert_awaited_once_with({PARAM_SWING_VERTICAL: 6})
