@@ -59,19 +59,35 @@ device parameters. This was chosen over two alternatives:
 ## Protocol additions
 
 Both keys already exist in the wider Gree/EWPE protocol family (see
-`tomikaa87/gree-remote`), alongside the six Phase 1 keys already implemented:
+`tomikaa87/gree-remote`), alongside the six Phase 1 keys already implemented.
 
-| Key | Meaning | Known range (to be confirmed live) |
-|-----|---------|-------------------------------------|
-| `SwUpDn` | Vertical (up/down) vane position | 0=default, 1=full swing, 2–6=fixed positions top→bottom |
-| `SwingLfRig` | Horizontal (left/right) vane position | 0=default, 1=full swing, 2–6=fixed positions left→right |
+Confirmed live against my unit (mac `502cc66cae10`, protocol V2, brand
+`gree`) at 192.168.40.11 on 2026-08-09 by binding directly with a throwaway
+script built on the repo's own `protocol.py`/`device.py`, sending each
+candidate value in turn, and observing the physical vane and the EWPE app:
 
-The exact value → position mapping is confirmed by binding directly to
-192.168.40.11 with a throwaway script built on the repo's own
-`protocol.py`/`device.py`, cycling candidate values, and observing the
-physical vane / EWPE app. This happens before the mapping is hard-coded into
-`const.py` — Gree-family firmware has historically shipped small variations
-in this range (e.g. some models omit the four intermediate fixed positions).
+| `SwUpDn` value | Confirmed meaning |
+|---|---|
+| 0 | Default (no visible change from last position) |
+| 1 | Full swing (continuous up/down motion) |
+| 2 | Fixed — upmost |
+| 3 | Fixed — middle-up |
+| 4 | Fixed — middle |
+| 5 | Fixed — middle-low |
+| 6 | Fixed — lowest |
+| 7 | **Invalid** — vane flutters erratically; the EWPE app offers no such option. Excluded from `swing_modes`. |
+
+| `SwingLfRig` value | Confirmed meaning |
+|---|---|
+| 0 | Default (vane sits straight ahead; app shows no active horizontal option) |
+| 1 | Full swing (continuous left/right motion) |
+| 2 | Fixed — leftmost |
+| 3 | Fixed — middle-left |
+| 4 | Fixed — middle |
+| 5 | Fixed — middle-right |
+| 6 | Fixed — rightmost |
+
+Only values 0–6 are used for both keys; 7+ is not exposed.
 
 ## Component changes
 
@@ -125,11 +141,12 @@ breaking.
 
 ## Rollout
 
-1. Fork (`amandoippel/ewpe-smart-ha`) and local clone already set up, branch
-   `feature/swing-controls`
-2. Probe + bind against 192.168.40.11, confirm protocol version and current
-   `SwUpDn`/`SwingLfRig` values are present in status replies
-3. Determine confirmed value mapping interactively
+1. ~~Fork (`amandoippel/ewpe-smart-ha`) and local clone already set up,
+   branch `feature/swing-controls`~~ Done
+2. ~~Probe + bind against 192.168.40.11, confirm protocol version and
+   current `SwUpDn`/`SwingLfRig` values are present in status replies~~ Done
+3. ~~Determine confirmed value mapping interactively~~ Done (see Protocol
+   additions above)
 4. Implement `const.py` / `climate.py` changes + tests
 5. Update `README.md` roadmap section
 6. Install into my real HA instance for final live confirmation
