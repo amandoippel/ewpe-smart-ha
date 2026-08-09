@@ -38,10 +38,18 @@ from .const import (
     PARAM_MODE,
     PARAM_POWER,
     PARAM_SET_TEMP,
+    PARAM_SWING_HORIZONTAL,
     PARAM_SWING_VERTICAL,
     PARAM_TEMP_SENSOR,
     POWER_OFF,
     POWER_ON,
+    SWING_HORIZONTAL_DEFAULT,
+    SWING_HORIZONTAL_FIXED_LEFTMOST,
+    SWING_HORIZONTAL_FIXED_MIDDLE,
+    SWING_HORIZONTAL_FIXED_MIDDLE_LEFT,
+    SWING_HORIZONTAL_FIXED_MIDDLE_RIGHT,
+    SWING_HORIZONTAL_FIXED_RIGHTMOST,
+    SWING_HORIZONTAL_FULL,
     SWING_VERTICAL_DEFAULT,
     SWING_VERTICAL_FIXED_LOWEST,
     SWING_VERTICAL_FIXED_MIDDLE,
@@ -82,6 +90,19 @@ SWING_MODE_TO_DEVICE: dict[str, int] = {
 }
 DEVICE_TO_SWING_MODE: dict[int, str] = {v: k for k, v in SWING_MODE_TO_DEVICE.items()}
 
+SWING_HORIZONTAL_MODE_TO_DEVICE: dict[str, int] = {
+    "Default": SWING_HORIZONTAL_DEFAULT,
+    "Full swing": SWING_HORIZONTAL_FULL,
+    "Fixed - leftmost": SWING_HORIZONTAL_FIXED_LEFTMOST,
+    "Fixed - middle-left": SWING_HORIZONTAL_FIXED_MIDDLE_LEFT,
+    "Fixed - middle": SWING_HORIZONTAL_FIXED_MIDDLE,
+    "Fixed - middle-right": SWING_HORIZONTAL_FIXED_MIDDLE_RIGHT,
+    "Fixed - rightmost": SWING_HORIZONTAL_FIXED_RIGHTMOST,
+}
+DEVICE_TO_SWING_HORIZONTAL_MODE: dict[int, str] = {
+    v: k for k, v in SWING_HORIZONTAL_MODE_TO_DEVICE.items()
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -112,12 +133,14 @@ class EwpeClimateEntity(CoordinatorEntity[EwpeCoordinator], ClimateEntity):
     ]
     _attr_fan_modes = [FAN_AUTO, FAN_LOW, FAN_MEDIUM, FAN_HIGH]
     _attr_swing_modes = list(SWING_MODE_TO_DEVICE)
+    _attr_swing_horizontal_modes = list(SWING_HORIZONTAL_MODE_TO_DEVICE)
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.FAN_MODE
         | ClimateEntityFeature.TURN_ON
         | ClimateEntityFeature.TURN_OFF
         | ClimateEntityFeature.SWING_MODE
+        | ClimateEntityFeature.SWING_HORIZONTAL_MODE
     )
 
     def __init__(self, coordinator: EwpeCoordinator, entry: ConfigEntry) -> None:
@@ -161,6 +184,13 @@ class EwpeClimateEntity(CoordinatorEntity[EwpeCoordinator], ClimateEntity):
         return DEVICE_TO_SWING_MODE.get(value)
 
     @property
+    def swing_horizontal_mode(self) -> str | None:
+        value = self._data.get(PARAM_SWING_HORIZONTAL)
+        if value is None:
+            return None
+        return DEVICE_TO_SWING_HORIZONTAL_MODE.get(value)
+
+    @property
     def target_temperature(self) -> float | None:
         value = self._data.get(PARAM_SET_TEMP)
         return float(value) if value is not None else None
@@ -194,6 +224,14 @@ class EwpeClimateEntity(CoordinatorEntity[EwpeCoordinator], ClimateEntity):
         if device_value is None:
             raise ValueError(f"Unsupported swing_mode: {swing_mode}")
         await self._send({PARAM_SWING_VERTICAL: device_value})
+
+    async def async_set_swing_horizontal_mode(self, swing_horizontal_mode: str) -> None:
+        device_value = SWING_HORIZONTAL_MODE_TO_DEVICE.get(swing_horizontal_mode)
+        if device_value is None:
+            raise ValueError(
+                f"Unsupported swing_horizontal_mode: {swing_horizontal_mode}"
+            )
+        await self._send({PARAM_SWING_HORIZONTAL: device_value})
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temperature = kwargs.get(ATTR_TEMPERATURE)
