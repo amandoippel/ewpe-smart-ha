@@ -23,6 +23,9 @@ talks to the unit over UDP/7000 directly — no MQTT broker, no extra processes.
 
 - 🌡️ **Climate entity** — power, HVAC mode (Auto / Cool / Heat / Dry / Fan only),
   target temperature, fan speed (Auto / Low / Medium / High)
+- 🔄 **Vane swing control** — vertical (up/down) and horizontal (left/right),
+  each with full-swing and 5 fixed positions, via the climate card's swing
+  dropdowns
 - 📊 **Indoor temperature sensor** — exposed separately for graphs and automations
 - 🔍 **Manual IP setup or local network discovery**
 - 🏠 **Multi-device support** — add as many units as you have, each gets its own
@@ -194,7 +197,9 @@ so no real device is required.
 
 - **Phase 2:** switch entities for sleep / turbo / quiet / X-fan / health /
   display light / energy save / fresh-air valve
-- **Phase 3:** swing controls (up/down, left/right, and 4-way for cassettes)
+- **Phase 3:** ✅ done for single-vane split units (up/down and left/right,
+  see Features above); 4-way independent cassette swing (separate NE/NW/SE/SW
+  vanes) is still open — needs a cassette unit to test against
 - **Phase 4:** 8 °C frost-protection mode, child lock, lock-remote toggle
 
 If a feature you need is missing, open an issue describing your unit (brand,

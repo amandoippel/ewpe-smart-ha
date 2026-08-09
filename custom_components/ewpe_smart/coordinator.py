@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN
+from .const import DOMAIN, POLL_PARAMS
 from .device import EwpeAuthError, EwpeDevice, EwpeError
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class EwpeCoordinator(DataUpdateCoordinator[dict[str, int]]):
 
     async def _async_update_data(self) -> dict[str, int]:
         try:
-            return await self.device.get_status()
+            return await self.device.get_status(POLL_PARAMS)
         except EwpeAuthError as err:
             raise ConfigEntryAuthFailed(
                 "Device key rejected; reauthentication required"
