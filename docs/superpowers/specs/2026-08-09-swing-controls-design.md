@@ -2,18 +2,18 @@
 
 **Date:** 2026-08-09
 **Status:** Approved
-**Author:** Amando Ippel (via Claude)
+**Author:** Amando Ippel
 
 ## Problem
 
 The integration currently implements only Phase 1 parameters (power, HVAC
-mode, target temperature, fan speed, indoor temperature sensor). The user's
-EWPE Smart mobile app can also drive the unit's motorised vane up / down /
-left / right, but the Home Assistant integration exposes no way to do this.
-This is exactly "Phase 3" on the project's own roadmap: *"swing controls
-(up/down, left/right, and 4-way for cassettes)"*.
+mode, target temperature, fan speed, indoor temperature sensor). My EWPE
+Smart mobile app can also drive the unit's motorised vane up / down / left /
+right, but the Home Assistant integration exposes no way to do this. This is
+exactly "Phase 3" on the project's own roadmap: *"swing controls (up/down,
+left/right, and 4-way for cassettes)"*.
 
-The user owns a split unit with a single vane that is motorised on both axes
+I own a split unit with a single vane that is motorised on both axes
 (confirmed via the EWPE app's separate up/down and left/right controls), so
 both vertical and horizontal swing need to be implemented, not just vertical.
 
@@ -32,15 +32,15 @@ In scope:
   coordinator picks them up
 - Unit tests mirroring the existing `test_climate.py` mock-based style
 - README roadmap updated to mark Phase 3 done
-- Value mapping (device integer → HA string label) confirmed against the
-  user's real device (192.168.40.11) before being hard-coded, since Gree-
-  family firmwares are known to vary slightly between models
+- Value mapping (device integer → HA string label) confirmed against my
+  real device (192.168.40.11) before being hard-coded, since Gree-family
+  firmwares are known to vary slightly between models
 
 Out of scope (deferred):
 
 - 4-way *independent* cassette swing (NE/NW/SE/SW quadrant control) — that is
-  a different physical mechanism (multiple independent vanes) than this
-  user's single 2-axis vane and needs its own device to test against
+  a different physical mechanism (multiple independent vanes) than my single
+  2-axis vane and needs its own device to test against
 - Any Phase 2 (sleep/turbo/quiet/x-fan/health/light/save/fresh-air) or
   Phase 4 (frost protection, child lock) features — unrelated to this change
 
@@ -129,17 +129,17 @@ breaking.
    `feature/swing-controls`
 2. Probe + bind against 192.168.40.11, confirm protocol version and current
    `SwUpDn`/`SwingLfRig` values are present in status replies
-3. Determine confirmed value mapping interactively with the user
+3. Determine confirmed value mapping interactively
 4. Implement `const.py` / `climate.py` changes + tests
 5. Update `README.md` roadmap section
-6. Install into the user's real HA instance for final live confirmation
-7. Commit, push to fork; open a PR upstream to `anaryk/ewpe-smart-ha` if the
-   user still wants to after seeing it work
+6. Install into my real HA instance for final live confirmation
+7. Commit, push to fork; open a PR upstream to `anaryk/ewpe-smart-ha` if I
+   still want to after seeing it work
 
 ## Open questions / future work
 
 - 4-way independent cassette swing (deferred, needs different hardware to
   test against)
 - Whether `SwingLfRig` is present at all on every split-unit model, or only
-  on this user's — the defensive `None`-on-missing-key handling covers this
+  on mine — the defensive `None`-on-missing-key handling covers this
   regardless
