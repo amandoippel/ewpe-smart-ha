@@ -20,6 +20,7 @@ from custom_components.ewpe_smart.const import (
     PROTO_V2,
 )
 from custom_components.ewpe_smart.device import EwpeDevice
+from custom_components.ewpe_smart.params_catalog import ALL_KNOWN_PARAMS
 from custom_components.ewpe_smart.protocol import (
     EwpeError,
     EwpeProtocolError,
@@ -315,3 +316,48 @@ async def test_bind_against_closed_port_raises_refused_error() -> None:
 
     with pytest.raises(EwpeRefusedError):
         await device.bind()
+
+
+@pytest.mark.asyncio
+async def test_get_status_default_batches_fit_strict_firmware() -> None:
+    """Discovery batches stay small enough for modules that drop >30-col requests."""
+    status = {name: 0 for name in ALL_KNOWN_PARAMS[:40]}
+    mock, port = await start_mock_device(status=status, max_status_cols=30)
+    device = EwpeDevice(host="127.0.0.1", port=port, timeout=0.5)
+    await device.bind()
+
+    result = await device.get_status()
+
+    assert set(result) == set(status)
+    assert all(len(cols) <= 30 for cols in mock.status_requests)
+
+
+@pytest.mark.asyncio
+async def test_get_status_splits_batch_the_device_ignores() -> None:
+    """A batch that gets no reply is split in half and retried."""
+    status = {name: 0 for name in ALL_KNOWN_PARAMS[:24]}
+    mock, port = await start_mock_device(status=status, max_status_cols=10)
+    device = EwpeDevice(host="127.0.0.1", port=port, timeout=0.3)
+    await device.bind()
+
+    result = await device.get_status(cols=list(status))
+
+    assert set(result) == set(status)
+    answered = [cols for cols in mock.status_requests if len(cols) <= 10]
+    assert sorted(c for cols in answered for c in cols) == sorted(status)
+
+
+@pytest.mark.asyncio
+async def test_get_status_small_batch_timeout_still_raises() -> None:
+    """Splitting stops at small batches so an offline device still times out."""
+    mock, port = await start_mock_device(misbehave="silent")
+    device = EwpeDevice(
+        host="127.0.0.1",
+        port=port,
+        mac="AA:BB:CC:DD:EE:FF",
+        key=b"abcdefghijklmnop",
+        timeout=0.2,
+    )
+
+    with pytest.raises(EwpeTimeout):
+        await device.get_status(cols=["Pow", "Mod", "SetTem"])
