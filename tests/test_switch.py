@@ -11,6 +11,7 @@ from custom_components.ewpe_smart.const import (
     PARAM_QUIET,
     PARAM_SLEEP,
     PARAM_SLEEP_MODE,
+    PARAM_TUR,
 )
 from custom_components.ewpe_smart.params_catalog import CORE_SWITCH_PARAMS
 from custom_components.ewpe_smart.switch import (
@@ -92,6 +93,27 @@ async def test_sleep_also_writes_sleep_mode() -> None:
     entity, device = _make_switch({"SwhSlp": 0}, param=PARAM_SLEEP)
     await entity.async_turn_on()
     device.set_state.assert_awaited_once_with({PARAM_SLEEP: 1, PARAM_SLEEP_MODE: 1})
+
+
+@pytest.mark.asyncio
+async def test_turbo_turns_quiet_off_in_the_same_packet() -> None:
+    entity, device = _make_switch({"Quiet": 2, "Tur": 0}, param=PARAM_TUR)
+    await entity.async_turn_on()
+    device.set_state.assert_awaited_once_with({PARAM_TUR: 1, PARAM_QUIET: 0})
+
+
+@pytest.mark.asyncio
+async def test_quiet_turns_turbo_off_in_the_same_packet() -> None:
+    entity, device = _make_switch({"Quiet": 0, "Tur": 1})
+    await entity.async_turn_on()
+    device.set_state.assert_awaited_once_with({PARAM_QUIET: 2, PARAM_TUR: 0})
+
+
+@pytest.mark.asyncio
+async def test_turning_quiet_or_turbo_off_leaves_the_other_alone() -> None:
+    entity, device = _make_switch({"Quiet": 2, "Tur": 0})
+    await entity.async_turn_off()
+    device.set_state.assert_awaited_once_with({PARAM_QUIET: 0})
 
 
 def test_catalog_adds_switches_for_keys_without_a_description() -> None:

@@ -39,6 +39,10 @@ class EwpeSwitchDescription:
     translation_key: str
     # Params written alongside ``param``, but never read back.
     also_writes: tuple[str, ...] = ()
+    # Params switched off in the same packet when this switch turns on, if the
+    # unit reports them. The unit accepts Quiet and Tur together and reads both
+    # back as on, but it only runs quiet, and the app shows both as off.
+    turns_off: tuple[str, ...] = ()
     on_value: int = POWER_ON
 
 
@@ -50,13 +54,17 @@ SWITCH_DESCRIPTIONS: tuple[EwpeSwitchDescription, ...] = (
         also_writes=(PARAM_SLEEP_MODE,),
     ),
     EwpeSwitchDescription(
-        param=PARAM_TUR, unique_id_suffix="turbo", translation_key="turbo"
+        param=PARAM_TUR,
+        unique_id_suffix="turbo",
+        translation_key="turbo",
+        turns_off=(PARAM_QUIET,),
     ),
     EwpeSwitchDescription(
         param=PARAM_QUIET,
         unique_id_suffix="quiet",
         translation_key="quiet",
         on_value=QUIET_MODE_ON,
+        turns_off=(PARAM_TUR,),
     ),
     EwpeSwitchDescription(
         param=PARAM_BLO, unique_id_suffix="xfan", translation_key="xfan"
@@ -136,13 +144,16 @@ class EwpeSwitchEntity(EwpeEntity, SwitchEntity):
         return bool(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self._send(self._description.on_value)
+        data = self.coordinator.data or {}
+        others = [p for p in self._description.turns_off if p in data]
+        await self._send(self._description.on_value, dict.fromkeys(others, POWER_OFF))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._send(POWER_OFF)
 
-    async def _send(self, value: int) -> None:
+    async def _send(self, value: int, extra: dict[str, int] | None = None) -> None:
         params = {self._description.param: value}
         params.update(dict.fromkeys(self._description.also_writes, value))
+        params.update(extra or {})
         await self.coordinator.device.set_state(params)
         await self.coordinator.async_request_refresh()
