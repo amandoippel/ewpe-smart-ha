@@ -336,14 +336,14 @@ async def test_get_status_default_batches_fit_strict_firmware() -> None:
 async def test_get_status_splits_batch_the_device_ignores() -> None:
     """A batch that gets no reply is split in half and retried."""
     status = {name: 0 for name in ALL_KNOWN_PARAMS[:24]}
-    mock, port = await start_mock_device(status=status, max_status_cols=10)
+    mock, port = await start_mock_device(status=status, max_status_cols=12)
     device = EwpeDevice(host="127.0.0.1", port=port, timeout=0.3)
     await device.bind()
 
     result = await device.get_status(cols=list(status))
 
     assert set(result) == set(status)
-    answered = [cols for cols in mock.status_requests if len(cols) <= 10]
+    answered = [cols for cols in mock.status_requests if len(cols) <= 12]
     assert sorted(c for cols in answered for c in cols) == sorted(status)
 
 

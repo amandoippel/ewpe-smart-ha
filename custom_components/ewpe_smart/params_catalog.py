@@ -43,7 +43,10 @@ DISCOVERY_BATCH_SIZE = 25
 
 # get_status() stops splitting an unanswered batch below this size and reports
 # the timeout, so an unreachable device doesn't cause a long cascade of retries.
-MIN_STATUS_BATCH_SIZE = 4
+# With batches of 25 that is two levels (25, 12): an offline device costs two
+# timeouts per protocol version per poll, and the smallest batch still tried
+# (12) is well below the lowest limit measured on real firmware.
+MIN_STATUS_BATCH_SIZE = 8
 
 
 def param_batches(
