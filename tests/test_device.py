@@ -20,7 +20,10 @@ from custom_components.ewpe_smart.const import (
     PROTO_V2,
 )
 from custom_components.ewpe_smart.device import EwpeDevice
-from custom_components.ewpe_smart.params_catalog import ALL_KNOWN_PARAMS
+from custom_components.ewpe_smart.params_catalog import (
+    ALL_KNOWN_PARAMS,
+    DISCOVERY_BATCH_SIZE,
+)
 from custom_components.ewpe_smart.protocol import (
     EwpeError,
     EwpeProtocolError,
@@ -361,3 +364,24 @@ async def test_get_status_small_batch_timeout_still_raises() -> None:
 
     with pytest.raises(EwpeTimeout):
         await device.get_status(cols=["Pow", "Mod", "SetTem"])
+
+
+@pytest.mark.asyncio
+async def test_get_status_full_batch_timeout_stops_after_two_levels() -> None:
+    """A silent device gives up after 25 and 12 cols instead of splitting further."""
+    device = EwpeDevice(
+        host="127.0.0.1",
+        mac="AA:BB:CC:DD:EE:FF",
+        key=b"abcdefghijklmnop",
+        timeout=0.2,
+    )
+    send = AsyncMock(side_effect=EwpeTimeout("no reply"))
+
+    with (
+        patch.object(device, "_send_with_version_fallback", send),
+        pytest.raises(EwpeTimeout),
+    ):
+        await device.get_status(cols=list(ALL_KNOWN_PARAMS[:DISCOVERY_BATCH_SIZE]))
+
+    sizes = [len(call.args[0]["cols"]) for call in send.await_args_list]
+    assert sizes == [DISCOVERY_BATCH_SIZE, DISCOVERY_BATCH_SIZE // 2]
